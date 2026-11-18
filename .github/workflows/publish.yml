@@ -19,8 +19,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: BunnyWay/actions/deploy-site@deploy-site_0.1.1
+      - uses: actions/setup-node@v7
         with:
-          site: capridesk
-          directory: dist
-          api_key: ${{ secrets.BUNNYNET_API_KEY }}
+          node-version: 24
+          package-manager-cache: false # Disable automatic npm caching if not required
+
+      - run: npm ci
+      - run: npm test
+
+      - run: npm install -g bnycdn
+
+      - run: |
+          bnycdn key set default $secrets.BUNNYNET_API_KEY
+          bnycdn key set capridesk $secrets.BUNNYNET_API_STORAGE_KEY --type=storages
+          bnycdn cp -R -s capridesk ./desk /capridesk/
+          bnycdn pz purge -t capridesk
