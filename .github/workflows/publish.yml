@@ -29,5 +29,5 @@ jobs:
       - run: |
           bnycdn key set default $secrets.BUNNYNET_API_KEY
           bnycdn key set capridesk $secrets.BUNNYNET_API_STORAGE_KEY --type=storages
-          bnycdn cp -R -s capridesk ./desk /capridesk/
+          bnycdn cp -R -s capridesk ./dist /capridesk/
           bnycdn pz purge -t capridesk
