@@ -24,9 +24,6 @@ jobs:
           node-version: 24
           package-manager-cache: false # Disable automatic npm caching if not required
 
-      - run: npm ci
-      - run: npm test
-
       - run: npm install -g bnycdn
 
       - run: |
