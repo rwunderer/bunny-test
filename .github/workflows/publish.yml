@@ -54,6 +54,6 @@ jobs:
       - name: Purge pull zone cache
         run: |
           curl --fail-with-body -sS -X POST \
-            "https://api.bunny.net/pullzone/${BUNNY_PULL_ZONE_ID}/purgeCache" \
-            -H "AccessKey: ${BUNNY_API_KEY}" \
+            "https://api.bunny.net/pullzone/${BUNNYNET_PULL_ZONE_ID}/purgeCache" \
+            -H "AccessKey: ${BUNNYNET_API_KEY}" \
             -H "Content-Length: 0"
