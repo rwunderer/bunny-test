@@ -4,29 +4,57 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 # Production deploys serialize across every ref; cancelling mid-upload would
 # leave a half-written deploy directory behind.
 concurrency:
-  group: bunny-sites
+  group: bunny-deploy
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      deployments: write # records the deploy in the repo's Environments
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.BUNNYNET_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.BUNNYNET_S3_SECRET_KEY }}
+      AWS_DEFAULT_REGION: "de"
+      AWS_ENDPOINT_URL_S3: https://de-s3.storage.bunnycdn.com
+      # Bunny PutObject documents SHA256 checksums only; these keep newer
+      # AWS CLI v2 from sending CRC32 trailers your endpoint may reject.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      AWS_EC2_METADATA_DISABLED: "true"
+      BUCKET: ${{ secrets.BUNNYNET_STORAGE_ZONE }}
+      BUNNYNET_PULL_ZONE_ID: ${{ secrets.BUNNYNET_PULLZONE_ID }}
+      BUNNYNET_API_KEY: ${{ secrets.BUNNYNET_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: lts/*
+          cache: npm
           package-manager-cache: false # Disable automatic npm caching if not required
 
-      - run: npm install -g bnycdn
+      #- run: npm ci
+      #- run: npm run build
 
-      - run: bnycdn key set default $secrets.BUNNYNET_API_KEY
-      - run: bnycdn key set capridesk $secrets.BUNNYNET_API_STORAGE_KEY --type=storages
-      - run: bnycdn cp -R -s capridesk ./dist /capridesk/
-      - run: bnycdn pz purge -t capridesk
+      - name: Sanity-check the build
+        run: |
+          test -f dist/index.html || { echo "::error::dist/index.html missing"; exit 1; }
+          echo "files: $(find dist -type f | wc -l)"
+
+      - name: Sync dist to Bunny Storage
+        run: |
+          aws s3 sync dist/ "s3://${BUCKET}/" \
+            --delete \
+            --only-show-errors
+
+      - name: Purge pull zone cache
+        run: |
+          curl --fail-with-body -sS -X POST \
+            "https://api.bunny.net/pullzone/${BUNNY_PULL_ZONE_ID}/purgeCache" \
+            -H "AccessKey: ${BUNNY_API_KEY}" \
+            -H "Content-Length: 0"
