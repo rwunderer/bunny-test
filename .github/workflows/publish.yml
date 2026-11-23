@@ -30,7 +30,7 @@ jobs:
       BUNNYNET_PULL_ZONE_ID: ${{ secrets.BUNNYNET_PULLZONE_ID }}
       BUNNYNET_API_KEY: ${{ secrets.BUNNYNET_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
         with:
